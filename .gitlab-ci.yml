@@ -1,0 +1,46 @@
+# vim: set ts=8 sw=2 sts=2 et:
+
+stages:
+  - test
+  - coverage
+
+before_script:
+  - export DEBIAN_FRONTEND=noninteractive
+  - apt-get update
+  - apt-get install -y
+    git
+    make
+    texlive-fonts-extra
+    texlive-lang-cyrillic
+    texlive-latex-base
+  - make instantiate
+
+.test_template: &test_definition
+  script:
+    - make test
+
+image: julia:1.1
+
+test:
+  <<: *test_definition
+
+test1.0:
+  image: julia:1.0
+  <<: *test_definition
+
+test:latest:
+  image:          julia:latest
+  allow_failure:  true
+  <<: *test_definition
+
+coverage:
+  stage:  coverage
+  script: |
+    make coverage
+    julia << EOF
+      using Pkg
+      Pkg.add("Coverage")
+      using Coverage
+      # Verbose by default and exposes the access token, suppress.
+      Codecov.submit_local(process_folder(), "."; verbose=false)
+    EOF
